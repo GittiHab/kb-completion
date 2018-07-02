@@ -11,9 +11,8 @@ class TransE(AbstractEmbedder):
 
         return tf.nn.l2_normalize(head_embedding + relation_embedding - tail_embedding)
 
-    def _initializeEmbedding(self, node_vocab_size, relation_vocab_size):
-        self.node_vocab_size = node_vocab_size
-        self.relation_vocab_size = relation_vocab_size
+    def _initialize_embedding(self, node_vocab_size, relation_vocab_size):
+        super()._initialize_embedding(node_vocab_size, relation_vocab_size)
         self.embedding_size = tf.Variable(tf.random_normal(
                 [self.embedding_size, node_vocab_size + relation_vocab_size],
                 stddev=0.1),
