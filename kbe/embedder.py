@@ -1,9 +1,10 @@
 import tensorflow as tf
+import random
 
 
 class AbstractEmbedder:
 
-    def __init__(self, margin, batch_size, epochs, alpha, embedding_size):
+    def __init__(self, margin, batch_size, epochs, learning_rate, embedding_size):
         """
         This is an abstract superclass for embedding methods. Embedders embed the nodes and edges of a knowledge graph
         so that they can be used to predict missing parts of the triples.
@@ -11,19 +12,21 @@ class AbstractEmbedder:
         :param margin: The maring in the loss function.
         :param batch_size: The batch size during training.
         :param epochs: The number of epochs the training should go through.
-        :param alpha: The learning rate. This is how fast the optimizer should descent during training.
+        :param learning_rate: This is how fast the optimizer should descent during training.
         :param embedding_size: The size of the embeddings created. Depending on the method this is a scalar or a tuple.
         :param n: The number of
         """
+        self.session = tf.Session()
         self.margin = margin
         self.batch_size = batch_size
         self.epochs = epochs
-        self.alpha = alpha
+        self.learning_rate = learning_rate
         self.embedding_size = embedding_size
-        self._initializeEmbedding()
+        self._initialize_embedding()
 
-    def _initializeEmbedding(self, node_vocab_size, relation_vocab_size):
-        raise NotImplementedError()
+    def _initialize_embedding(self, node_vocab_size, relation_vocab_size):
+        self.node_vocab_size = node_vocab_size
+        self.relation_vocab_size = relation_vocab_size
 
     def score(self, head, relation, tail):
         """
@@ -44,7 +47,7 @@ class AbstractEmbedder:
         :param batch: The current training batch. Consists out of 5-tuples: (head, tail, relation, head_modified, tail_modified)
         :return: The loss value of this batch.
         """
-        pass
+        return tf.reduce_sum(self._loss_part(batch[0], batch[1], batch[2], batch[3], batch[4]))
 
     def _loss_part(self, head, tail, relation, head_modified, tail_modified):
         """
@@ -68,12 +71,37 @@ class AbstractEmbedder:
         :param relation_vocab_size: The total number of nodes. If None, the max value is used.
         :return: Nothing.
         """
-        self._initializeEmbedding(node_vocab_size, relation_vocab_size)
+        self._initialize_embedding(node_vocab_size, relation_vocab_size)
+        self.session.run(tf.local_variables_initializer())
+        for batch in tf.train.batch(triples, batch_size=self.batch_size, allow_smaller_final_batch=True):
+            final_batch = []
+            for element in batch:
+                final_batch.append(element.appendAll(self._sample_corrupted_triple(element)))
+            self.session.run(self._optimizer().minimize(self.loss(final_batch)))
+
+    def _sample_corrupted_triple(self, head, relation, tail):
+        """
+        In classic methods either head or tail is corrupted which one is determined by random (50/50 chance).
+        The method might be different depending on the model.
+        :return: A corrupted triple for training.
+        """
+        if random.random() >= 0.5:
+            return random.randint(0, self.node_vocab_size - 1), relation, tail
+        else:
+            return head, relation, random.randint(0, self.node_vocab_size - 1)
+
+    def _optimizer(self):
+        """
+        Return the optimizer for training.
+        :return: A subclass of tf.train.Optimizer
+        """
+        return tf.train.AdamOptimizer(learning_rate=self.learning_rate)
 
     def evaluate(self, triples):
+
         pass
 
-    def predict_tail(selfs, head, relation, n=10):
+    def predict_tail(self, head, relation, n=10):
         """
         Predict the tail node of this triple.
 
