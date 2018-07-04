@@ -16,13 +16,20 @@ class AbstractEmbedder:
         :param embedding_size: The size of the embeddings created. Depending on the method this is a scalar or a tuple.
         :param n: The number of
         """
-        self.session = tf.Session()
+
         self.margin = margin
         self.batch_size = batch_size
         self.epochs = epochs
         self.learning_rate = learning_rate
         self.embedding_size = embedding_size
-        self._initialize_embedding()
+
+        self.session = tf.Session()
+
+    def _init_session(self):
+        self.session.run(tf.global_variables_initializer())
+
+    def _initialize_optimizer(self):
+        self.optimizer = tf.train.AdamOptimizer(learning_rate=self.learning_rate)
 
     def _initialize_embedding(self, node_vocab_size, relation_vocab_size):
         self.node_vocab_size = node_vocab_size
@@ -47,7 +54,7 @@ class AbstractEmbedder:
         :param batch: The current training batch. Consists out of 5-tuples: (head, tail, relation, head_modified, tail_modified)
         :return: The loss value of this batch.
         """
-        return tf.reduce_sum(self._loss_part(batch[0], batch[1], batch[2], batch[3], batch[4]))
+        return tf.reduce_sum(self._loss_part(batch[:, 0], batch[:, 1], batch[:, 2], batch[:, 3], batch[:, 4]))
 
     def _loss_part(self, head, tail, relation, head_modified, tail_modified):
         """
@@ -57,10 +64,11 @@ class AbstractEmbedder:
         All parameters are represented as their integer id.
         The modified parts are the generated negative examples.
         """
-        return tf.max(0,
-                      self.score(head, relation, tail)
-                      + self.margin
-                      - self.score(head_modified, relation, tail_modified))
+        return tf.maximum(0.,
+                          tf.subtract(
+                              tf.add(self.score(head, relation, tail),
+                                     self.margin),
+                              self.score(head_modified, relation, tail_modified)))
 
     def train(self, triples, node_vocab_size=None, relation_vocab_size=None):
         """
@@ -71,31 +79,47 @@ class AbstractEmbedder:
         :param relation_vocab_size: The total number of nodes. If None, the max value is used.
         :return: Nothing.
         """
+        self._initialize_optimizer()
         self._initialize_embedding(node_vocab_size, relation_vocab_size)
-        self.session.run(tf.local_variables_initializer())
-        for batch in tf.train.batch(triples, batch_size=self.batch_size, allow_smaller_final_batch=True):
-            final_batch = []
-            for element in batch:
-                final_batch.append(element.appendAll(self._sample_corrupted_triple(element)))
-            self.session.run(self._optimizer().minimize(self.loss(final_batch)))
 
-    def _sample_corrupted_triple(self, head, relation, tail):
+        dataset = tf.data.Dataset.from_tensors(self._sample_corrupted_triple(triples))
+        dataset.batch(self.batch_size).repeat(self.epochs)
+        data_iter = dataset.make_initializable_iterator()
+        minimize_op = self._optimizer().minimize(self.loss(data_iter.get_next()))
+
+        self._init_session()
+        self.session.run(data_iter.initializer)
+
+        return self.session.run(minimize_op)
+
+    def _sample_corrupted_triple(self, data):
         """
         In classic methods either head or tail is corrupted which one is determined by random (50/50 chance).
         The method might be different depending on the model.
         :return: A corrupted triple for training.
         """
-        if random.random() >= 0.5:
-            return random.randint(0, self.node_vocab_size - 1), relation, tail
-        else:
-            return head, relation, random.randint(0, self.node_vocab_size - 1)
+        shuffled_data = tf.random_shuffle(data)
+
+        half = tf.cast(tf.round(tf.shape(data)[0] / 2), tf.int32)
+
+        upper_batch = tf.concat([shuffled_data[:half],
+                                 tf.reshape(shuffled_data[:half, 0], [-1, 1]),
+                                 tf.random_uniform([half, 1], minval=0, maxval=self.node_vocab_size - 1, dtype=tf.int32)],
+                                1)
+        lower_batch = tf.concat([shuffled_data[half:],
+                                 tf.random_uniform([half, 1], minval=0, maxval=self.node_vocab_size - 1, dtype=tf.int32),
+                                 tf.reshape(shuffled_data[half:, 2], [-1, 1])
+                                 ],
+                                1)
+
+        return tf.concat([upper_batch, lower_batch], 0)
 
     def _optimizer(self):
         """
         Return the optimizer for training.
         :return: A subclass of tf.train.Optimizer
         """
-        return tf.train.AdamOptimizer(learning_rate=self.learning_rate)
+        return self.optimizer
 
     def evaluate(self, triples):
 

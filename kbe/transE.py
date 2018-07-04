@@ -6,14 +6,13 @@ class TransE(AbstractEmbedder):
 
     def score(self, head, relation, tail):
         head_embedding = tf.nn.embedding_lookup(self.embedding, head)
-        relation_embedding = tf.nn.embedding_lookup(self.node_vocab_size + self.embedding, relation)
+        relation_embedding = tf.nn.embedding_lookup(self.embedding, self.node_vocab_size + relation)
         tail_embedding = tf.nn.embedding_lookup(self.embedding, tail)
 
-        return tf.nn.l2_normalize(head_embedding + relation_embedding - tail_embedding)
+        return tf.norm(head_embedding + relation_embedding - tail_embedding)
 
     def _initialize_embedding(self, node_vocab_size, relation_vocab_size):
         super()._initialize_embedding(node_vocab_size, relation_vocab_size)
-        self.embedding_size = tf.Variable(tf.random_normal(
-                [self.embedding_size, node_vocab_size + relation_vocab_size],
-                stddev=0.1),
+        self.embedding = tf.Variable(
+            tf.random_normal([node_vocab_size + relation_vocab_size, self.embedding_size], stddev=0.1),
             name="embedding")
