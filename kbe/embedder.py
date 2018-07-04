@@ -4,7 +4,7 @@ import random
 
 class AbstractEmbedder:
 
-    def __init__(self, margin, batch_size, epochs, learning_rate, embedding_size):
+    def __init__(self, margin, batch_size, epochs, learning_rate, embedding_size, node_vocab_size, relation_vocab_size):
         """
         This is an abstract superclass for embedding methods. Embedders embed the nodes and edges of a knowledge graph
         so that they can be used to predict missing parts of the triples.
@@ -22,18 +22,24 @@ class AbstractEmbedder:
         self.epochs = epochs
         self.learning_rate = learning_rate
         self.embedding_size = embedding_size
-
-        self.session = tf.Session()
-
-    def _init_session(self):
-        self.session.run(tf.global_variables_initializer())
-
-    def _initialize_optimizer(self):
-        self.optimizer = tf.train.AdamOptimizer(learning_rate=self.learning_rate)
-
-    def _initialize_embedding(self, node_vocab_size, relation_vocab_size):
         self.node_vocab_size = node_vocab_size
         self.relation_vocab_size = relation_vocab_size
+        self.optimizer = None
+
+        self.session = tf.Session()
+        self._initialize_embedding()
+        self._initialize_session()
+
+    def _initialize_session(self):
+        self.session.run(tf.global_variables_initializer())
+
+    def _initialize_embedding(self, node_vocab_size, relation_vocab_size):
+        raise NotImplementedError()
+
+    @property
+    def embedding(self):
+        raise NotImplementedError()
+
 
     def score(self, head, relation, tail):
         """
@@ -70,7 +76,7 @@ class AbstractEmbedder:
                                      self.margin),
                               self.score(head_modified, relation, tail_modified)))
 
-    def train(self, triples, node_vocab_size=None, relation_vocab_size=None):
+    def train(self, triples):
         """
         Train the embedding.
         :param triples: All training triples of format (head, relation, tail) where each is represented as an integer id
@@ -79,17 +85,13 @@ class AbstractEmbedder:
         :param relation_vocab_size: The total number of nodes. If None, the max value is used.
         :return: Nothing.
         """
-        self._initialize_optimizer()
-        self._initialize_embedding(node_vocab_size, relation_vocab_size)
-
         dataset = tf.data.Dataset.from_tensors(self._sample_corrupted_triple(triples))
         dataset.batch(self.batch_size).repeat(self.epochs)
         data_iter = dataset.make_initializable_iterator()
         minimize_op = self._optimizer().minimize(self.loss(data_iter.get_next()))
 
-        self._init_session()
         self.session.run(data_iter.initializer)
-
+        self._initialize_session() # required as the optimizer defines new variables
         return self.session.run(minimize_op)
 
     def _sample_corrupted_triple(self, data):
@@ -119,6 +121,8 @@ class AbstractEmbedder:
         Return the optimizer for training.
         :return: A subclass of tf.train.Optimizer
         """
+        if self.optimizer is None:
+            self.optimizer = tf.train.AdamOptimizer(learning_rate=self.learning_rate, name="embedder/optimizer")
         return self.optimizer
 
     def evaluate(self, triples):
