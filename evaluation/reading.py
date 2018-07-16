@@ -74,13 +74,13 @@ def read_all_pairs(path):
 
 
 def read_dataset(name = 'fb15k'):
-    datasets = {'fb15k': {'path': 'fb15k', 'expected': 'data/ft_freebase_mtr100_mte100-test.txt'},
-                'wn': {'path': 'WN', 'expected': 'data/ft_wordnet-mlj12-test.txt'}}
+    datasets = {'fb15k': {'path': 'fb15k', 'expected': '../data/ft_freebase_mtr100_mte100-test.txt'},
+                'wn': {'path': 'WN', 'expected': '../data/ft_wordnet-mlj12-test.txt'}}
     dataset = datasets[name]
 
-    all_pairs = read_all_pairs("data/{}/all.txt".format(dataset['path']))
-    cluster = read_clusters("data/{}/clusters.txt".format(dataset['path']))
-    y_pred, y_prob = read_prediction("data/{}/predictions.txt".format(dataset['path']))
+    all_pairs = read_all_pairs("../data/{}/all.txt".format(dataset['path']))
+    cluster = read_clusters("../data/{}/clusters.txt".format(dataset['path']))
+    y_pred, y_prob = read_prediction("../data/{}/predictions.txt".format(dataset['path']))
     y_exp, triples_exp, other_exp = read_expected(dataset['expected'])
 
     return y_pred, y_prob, y_exp, triples_exp, other_exp, all_pairs, cluster

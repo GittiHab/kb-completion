@@ -64,7 +64,7 @@ class Evaluation:
             for g in guesses:
                 if g == self.expected[i]:
                     is_hit = True
-                if self.is_negative(g, self.expected_triples[i][self.other_index[i]], self.cluster, self.all_pairs):
+                if self.is_negative(g, self.expected_triples[i][self.other_index[i]], self.clusters, self.all_pairs):
                     has_miss = True
                 if has_miss and is_hit:
                     break
@@ -87,7 +87,7 @@ class Evaluation:
 
         return np.mean(hits), counts
 
-    def hits_group(self, threshold):
+    def hits_group(self, threshold, verbose=True):
 
         if len(self.grouped) == 0:
             print("Grouping data...")
@@ -101,7 +101,7 @@ class Evaluation:
             self.grouped['x'] = {**x_heads, **x_tails}
             self.grouped['y'] = {**y_heads, **y_tails}
 
-        return self._hits_batch_threshold(self.grouped['x'], self.grouped['y'], threshold)
+        return self._hits_batch_threshold(self.grouped['x'], self.grouped['y'], threshold, verbose)
 
     @staticmethod
     def _cluster_test_data(expected, predictions, probabilities):
@@ -126,7 +126,7 @@ class Evaluation:
         return x, y, y_indices
 
     # Hits metric that groups the data before evaluation and considers negative samples
-    def _hits_batch_threshold(self, x, y, threshold, verbose=True):
+    def _hits_batch_threshold(self, x, y, threshold, verbose):
         assert \
             len(y) == len(x), \
             "x and y should have same length but were {}, {}.".format(len(x), len(y))
@@ -147,7 +147,7 @@ class Evaluation:
                     hits.append(0.0)
 
             for g in guesses:
-                if self.is_negative(g, k[0], self.cluster, self.all_pairs):
+                if self.is_negative(g, k[0], self.clusters, self.all_pairs):
                     hits.append(0.0)
 
         if verbose:
