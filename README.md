@@ -2,9 +2,23 @@
 
 This repository includes implementations of my bachelor thesis.
 
-## Descriptions
+## Description
 
 
 ## Usage
 To commit large files this repository uses [Git LFS](https://git-lfs.github.com/).
-Please make sure you have it [installed](https://help.github.com/articles/installing-git-large-file-storage/) and setup, if you would like to reproduce the results.
+Please make sure you have it [installed](https://help.github.com/articles/installing-git-large-file-storage/) and setup,
+if you would like to reproduce the results.
+
+The thesis reports on the results in the `threshold-optimization` notebook.
+To run this, you first have to unpack the predictions of the models which were computed using the source provided by the
+authors.
+To do this head into the `data` directory and for the datasets `fb15k` and `WN`, which are used in the notebook, run
+`tar -xvzf predictions.tar.gz`.
+Done! Now you're good to go.
+
+## Citation
+
+```
+
+```

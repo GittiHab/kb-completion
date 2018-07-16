@@ -126,8 +126,11 @@ class AbstractEmbedder:
         return self.optimizer
 
     def evaluate(self, triples):
-
-        pass
+        """
+        Evaluate the embedding.
+        :param triples:
+        :return:
+        """
 
     def predict_tail(self, head, relation, n=10):
         """
