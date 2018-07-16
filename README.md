@@ -17,7 +17,8 @@ The thesis reports on the results in the `threshold-optimization` notebook.
 To run this, you first have to unpack the predictions of the models which were computed using the source provided by the
 authors.
 To do this head into the `data` directory and for the datasets `fb15k` and `WN`, which are used in the notebook, run
-`tar -xvzf predictions.tar.gz`. Done! Now you're good to go.
+`tar -xvzf predictions.tar.gz`.
+Done! Now you're good to go.
 
 ## Citation
 
