@@ -21,6 +21,7 @@ To do this head into the `data` directory and for the datasets `fb15k` and `WN`,
 Done! Now you're good to go.
 
 ## Citation
+If you use any of the code please cite the thesis.
 
 ```
 

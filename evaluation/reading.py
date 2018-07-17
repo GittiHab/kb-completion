@@ -10,7 +10,8 @@ def read_prediction(path, prefix="__label__"):
         cleaned = []
 
         for label in data[::2]:
-            cleaned.append(label[len(prefix):])
+            if label[len(prefix):] == prefix:
+                cleaned.append(label[len(prefix):])
 
         predictions.append(cleaned)
         probabilities.append(data[1::2])
@@ -78,7 +79,8 @@ def read_dataset(name = 'fb15k', model = 'fasttext'):
                 'wn': {'path': 'WN', 'expected': '../data/ft_wordnet-mlj12-test.txt'}}
     dataset = datasets[name]
     
-    models = {'fasttext': {'name': 'fasttext'}}
+    models = {'fasttext': {'name': 'fasttext'},
+              'transe': {'name': 'sme'}}
     model = models[model]
 
     all_pairs = read_all_pairs("../data/{}/all.txt".format(dataset['path']))
