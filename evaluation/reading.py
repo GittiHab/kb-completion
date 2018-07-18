@@ -18,7 +18,7 @@ def read_prediction(path, prefix="__label__"):
         predictions.append(cleaned)
         probabilities.append(data[1::2])
 
-    return np.array(predictions), np.array(probabilities).astype(np.float64)
+    return np.array(predictions), np.absolute(np.array(probabilities).astype(np.float64))
 
 
 def read_clusters(path):
