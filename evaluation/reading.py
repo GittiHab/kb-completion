@@ -10,8 +10,10 @@ def read_prediction(path, prefix="__label__"):
         cleaned = []
 
         for label in data[::2]:
-            if label[len(prefix):] == prefix:
+            if label[:len(prefix)] == prefix:
                 cleaned.append(label[len(prefix):])
+            else:
+                cleaned.append(label)
 
         predictions.append(cleaned)
         probabilities.append(data[1::2])
